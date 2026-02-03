@@ -16,14 +16,14 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/auth", {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ code: password }),
       });
 
       if (res.ok) {
-        router.push("/dashboard/overview");
+        router.push("/");
       } else {
         setError("Contraseña incorrecta");
       }

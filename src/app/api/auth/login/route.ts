@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const accessCode = process.env.ACCESS_CODE;
+    const accessCode = process.env.ACCESS_CODE || process.env.DASHBOARD_PASSWORD;
     if (!accessCode) {
       return NextResponse.json(
         { error: "Server configuration error" },
