@@ -1,40 +1,39 @@
 @import "tailwindcss";
 
-:root {
-  --bg-page: #0a0a0a;
-  --bg-card: #141414;
-  --bg-surface: #1e1e1e;
-  --bg-hover: #262626;
-  --border: #262626;
-  --border-light: #333333;
-  --accent: #2563eb;
-  --accent-light: #3b82f6;
-  --accent-dark: #1d4ed8;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --info: #3b82f6;
-  --muted: #374151;
-  --white: #ffffff;
-  --text-primary: #f5f5f5;
-  --text-secondary: #a3a3a3;
-  --text-muted: #737373;
-  --font-primary: "Inter", sans-serif;
+/* ============================================
+   WhatsApp Clinic Dashboard — Design Tokens
+   ============================================ */
+
+@theme {
+  /* Background colors */
+  --color-bg-page: #0F172A;
+  --color-bg-card: #1E293B;
+  --color-bg-surface: #334155;
+  --color-bg-sidebar: #0B1120;
+
+  /* Text colors */
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+
+  /* Accent & Status */
+  --color-accent: #2563EB;
+  --color-accent-hover: #1D4ED8;
+  --color-danger: #EF4444;
+  --color-warning: #F59E0B;
+  --color-success: #22C55E;
+  --color-no-show: #374151;
+
+  /* Border */
+  --color-border: #334155;
+  --color-border-light: #1E293B;
 }
 
-html,
+/* Base styles */
 body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: var(--font-primary);
-  background-color: var(--bg-page);
-  color: var(--text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
 }
 
 /* Scrollbar styling */
@@ -42,22 +41,13 @@ body {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: var(--bg-page);
+  background: var(--color-bg-page);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: var(--border-light);
+  background: var(--color-bg-surface);
   border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-/* Firefox scrollbar */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-light) var(--bg-page);
+  background: var(--color-text-muted);
 }

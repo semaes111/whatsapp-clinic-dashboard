@@ -2,6 +2,7 @@
   "name": "whatsapp-clinic-dashboard",
   "version": "1.0.0",
   "private": true,
+  "description": "Dashboard clínico para gestión de pacientes vía WhatsApp con IA - Dietética y Estética Dr. Sergio",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,7 +12,6 @@
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
-    "jose": "^5.2.0",
     "lucide-react": "^0.468.0",
     "next": "15.1.0",
     "react": "^19.0.0",

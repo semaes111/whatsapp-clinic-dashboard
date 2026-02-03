@@ -35,5 +35,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# claude code
+# IDE
+.vscode/
+.idea/
+
+# MCP local config
+.mcp.json
+
+# Claude
 .claude/
