@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/auth";
+import { verifyToken, AUTH_COOKIE_NAME } from "../../../../lib/auth";
 
 export async function GET(request: NextRequest) {
   try {

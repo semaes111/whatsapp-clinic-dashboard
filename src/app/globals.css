@@ -1,38 +1,32 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ============================================
    WhatsApp Clinic Dashboard — Design Tokens
    ============================================ */
 
-@theme {
-  /* Background colors */
-  --color-bg-page: #0F172A;
-  --color-bg-card: #1E293B;
-  --color-bg-surface: #334155;
-  --color-bg-sidebar: #0B1120;
-
-  /* Text colors */
-  --color-text-primary: #F1F5F9;
-  --color-text-secondary: #94A3B8;
-  --color-text-muted: #64748B;
-
-  /* Accent & Status */
-  --color-accent: #2563EB;
-  --color-accent-hover: #1D4ED8;
-  --color-danger: #EF4444;
-  --color-warning: #F59E0B;
-  --color-success: #22C55E;
-  --color-no-show: #374151;
-
-  /* Border */
-  --color-border: #334155;
-  --color-border-light: #1E293B;
+:root {
+  --bg-page: #0F172A;
+  --bg-card: #1E293B;
+  --bg-surface: #334155;
+  --bg-sidebar: #0B1120;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --accent: #2563EB;
+  --accent-hover: #1D4ED8;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+  --success: #22C55E;
+  --no-show: #374151;
+  --border: #334155;
+  --border-light: #1E293B;
 }
 
-/* Base styles */
 body {
-  background-color: var(--color-bg-page);
-  color: var(--color-text-primary);
+  background-color: var(--bg-page);
+  color: var(--text-primary);
   font-family: "Inter", system-ui, -apple-system, sans-serif;
 }
 
@@ -42,12 +36,12 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-page);
+  background: var(--bg-page);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-bg-surface);
+  background: var(--bg-surface);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
+  background: var(--text-muted);
 }
