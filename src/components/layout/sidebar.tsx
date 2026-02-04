@@ -13,11 +13,11 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dash" },
-  { icon: FileText, label: "Informe Diario", href: "/dash/informe" },
-  { icon: MessageCircle, label: "Consultar", href: "/dash/chat" },
-  { icon: Users, label: "Pacientes", href: "/dash/pacientes" },
-  { icon: CalendarDays, label: "Histórico", href: "/dash/historico" },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/" },
+  { icon: FileText, label: "Informe Diario", href: "/informe" },
+  { icon: MessageCircle, label: "Consultar", href: "/chat" },
+  { icon: Users, label: "Pacientes", href: "/pacientes" },
+  { icon: CalendarDays, label: "Histórico", href: "/historico" },
 ];
 
 export function Sidebar() {
