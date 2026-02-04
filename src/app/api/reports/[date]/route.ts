@@ -23,59 +23,47 @@ export async function GET(
       );
     }
 
-    // Get report patient details
-    const { data: detalle } = await supabase
-      .from("informe_pacientes")
-      .select("*, pacientes(nombre, apellidos, telefono)")
-      .eq("informe_id", informe.id)
-      .order("categoria");
+    // Read from datos_raw (Claude's analysis stored as JSON)
+    const raw = informe.datos_raw || {};
+    const categorias = raw.categorias || {};
 
-    // Get tasks for this report
-    const { data: tareas } = await supabase
-      .from("tareas_noelia")
-      .select("*, pacientes(nombre, apellidos, telefono)")
-      .eq("informe_id", informe.id)
-      .order("orden", { ascending: true });
-
-    // Group patients by category
     const byCategory: Record<string, unknown[]> = {
-      urgente: [],
-      pendiente: [],
-      confirmado: [],
-      no_acude: [],
+      urgente: (categorias.urgente || []).map((p: Record<string, string>) => ({
+        patient_name: p.nombre,
+        phone: p.telefono,
+        descripcion: p.descripcion,
+        accion_requerida: p.accion_requerida,
+        estado: p.estado,
+      })),
+      pendiente: (categorias.pendiente || []).map((p: Record<string, string>) => ({
+        patient_name: p.nombre,
+        phone: p.telefono,
+        descripcion: p.descripcion,
+        accion_requerida: p.accion_requerida,
+      })),
+      confirmado: (categorias.confirmado || []).map((p: Record<string, string>) => ({
+        patient_name: p.nombre,
+        phone: p.telefono,
+        hora_cita: p.hora_cita,
+        descripcion: p.detalle,
+      })),
+      no_acude: (categorias.no_acude || []).map((p: Record<string, string>) => ({
+        patient_name: p.nombre,
+        phone: p.telefono,
+        motivo_cancelacion: p.motivo,
+        descripcion: p.detalle,
+      })),
     };
 
-    (detalle || []).forEach((d: Record<string, unknown>) => {
-      const pac = d.pacientes as Record<string, unknown> | null;
-      const item = {
-        id: d.id,
-        patient_name: pac ? `${pac.nombre || ""} ${pac.apellidos || ""}`.trim() : "Desconocido",
-        phone: pac?.telefono ?? null,
-        descripcion: d.descripcion,
-        accion_requerida: d.accion_requerida,
-        etiquetas: d.etiquetas,
-        hora_cita: d.hora_cita,
-        motivo_cancelacion: d.motivo_cancelacion,
-        reagendado: d.reagendado,
-      };
-      const cat = d.categoria as string;
-      if (byCategory[cat]) {
-        byCategory[cat].push(item);
-      }
-    });
+    const tasks = (raw.tareas_noelia || []).map((t: Record<string, string>, i: number) => ({
+      id: i,
+      titulo: t.texto,
+      descripcion: t.texto,
+      prioridad: t.prioridad,
+      estado: "pendiente",
+    }));
 
-    const tasks = (tareas || []).map((t: Record<string, unknown>) => {
-      const pac = t.pacientes as Record<string, unknown> | null;
-      return {
-        id: t.id,
-        titulo: t.titulo,
-        descripcion: t.descripcion,
-        prioridad: t.prioridad,
-        estado: t.estado,
-        patient_name: pac ? `${pac.nombre || ""} ${pac.apellidos || ""}`.trim() : null,
-        phone: pac?.telefono ?? null,
-      };
-    });
+    const otrosContactos = raw.otros_contactos || [];
 
     return NextResponse.json({
       id: informe.id,
@@ -93,6 +81,7 @@ export async function GET(
       },
       categorias: byCategory,
       tareas: tasks,
+      otros_contactos: otrosContactos,
       generated_at: informe.generado_at,
     });
   } catch (error) {
