@@ -2,10 +2,44 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "../../../lib/supabase";
 
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+
+async function callClaude(systemPrompt: string, userMessage: string): Promise<string> {
+  // Get API key from n8n credential via workflow or use env
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return "Error: API key de Anthropic no configurada.";
+  }
+
+  const res = await fetch(ANTHROPIC_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 2000,
+      messages: [{ role: "user", content: userMessage }],
+      system: systemPrompt,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("Claude API error:", err);
+    return "Error al consultar la IA. Inténtalo de nuevo.";
+  }
+
+  const data = await res.json();
+  return data.content?.[0]?.text || "Sin respuesta.";
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { question, context_type, context_id, session_id } = body;
+    const { question, context_type, context_id } = body;
 
     if (!question) {
       return NextResponse.json(
@@ -14,102 +48,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get or create session
-    let sessionId = session_id;
-    if (!sessionId) {
-      const { data: session } = await supabase
-        .from("sesiones_chat")
-        .insert({ contexto: context_id, titulo: question.slice(0, 100) })
-        .select("id")
-        .single();
-      sessionId = session?.id;
+    // Get the report for context
+    let reportContext = "";
+    const reportDate = context_id || new Date().toISOString().split("T")[0];
+
+    const { data: informe } = await supabase
+      .from("informes_diarios")
+      .select("*")
+      .eq("fecha", reportDate)
+      .single();
+
+    if (informe?.datos_raw) {
+      const raw = informe.datos_raw;
+      reportContext = JSON.stringify(raw, null, 2);
+    } else if (informe) {
+      reportContext = `Resumen: ${informe.resumen_ejecutivo}\nPuntos clave: ${(informe.puntos_clave || []).join(", ")}`;
     }
 
-    // Save user message
-    if (sessionId) {
-      await supabase.from("mensajes_chat").insert({
-        sesion_id: sessionId,
-        rol: "user",
-        contenido: question,
-      });
-    }
+    const systemPrompt = `Eres el asistente inteligente del Dashboard de la Consulta del Dr. Martínez Escobar en El Ejido, Almería. Noelia es la auxiliar que gestiona WhatsApp.
 
-    // TODO: Integrate with Claude API for real AI answers
-    // For now, query Supabase for relevant data and return a basic response
-    let answer = "No tengo suficiente información para responder a esa pregunta.";
+Tienes acceso al informe diario del ${reportDate}. Responde preguntas sobre pacientes, citas, tareas pendientes, urgencias y cualquier dato del informe.
 
-    const q = question.toLowerCase();
+Sé conciso, directo y útil. Usa formato con negritas y listas cuando sea apropiado. Responde siempre en español.
 
-    if (q.includes("urgente") || q.includes("urgencia")) {
-      const { data } = await supabase
-        .from("interacciones")
-        .select("resumen_ia, accion_requerida, pacientes(nombre, apellidos)")
-        .eq("categoria", "urgente")
-        .order("created_at", { ascending: false })
-        .limit(5);
+DATOS DEL INFORME:
+${reportContext || "No hay informe disponible para esta fecha."}`;
 
-      if (data && data.length > 0) {
-        const items = data.map((i: Record<string, unknown>) => {
-          const pac = i.pacientes as Record<string, unknown> | null;
-          return `• ${pac ? `${pac.nombre} ${pac.apellidos}` : "?"}: ${i.resumen_ia}`;
-        });
-        answer = `Hay ${data.length} casos urgentes:\n\n${items.join("\n")}`;
-      }
-    } else if (q.includes("tarea") || q.includes("pendiente") || q.includes("noelia")) {
-      const { data } = await supabase
-        .from("tareas_noelia")
-        .select("titulo, descripcion, prioridad, pacientes(nombre, apellidos)")
-        .eq("estado", "pendiente")
-        .order("orden");
-
-      if (data && data.length > 0) {
-        const items = data.map((t: Record<string, unknown>) => {
-          const pac = t.pacientes as Record<string, unknown> | null;
-          return `• [${t.prioridad}] ${t.titulo}${pac ? ` — ${pac.nombre} ${pac.apellidos}` : ""}`;
-        });
-        answer = `Hay ${data.length} tareas pendientes:\n\n${items.join("\n")}`;
-      }
-    } else if (q.includes("cita") || q.includes("hoy") || q.includes("mañana")) {
-      const { data } = await supabase
-        .from("v_citas_hoy")
-        .select("*");
-
-      if (data && data.length > 0) {
-        const items = data.map((c: Record<string, unknown>) =>
-          `• ${c.hora} — ${c.nombre} ${c.apellidos} (${c.estado})`
-        );
-        answer = `Citas de hoy (${data.length}):\n\n${items.join("\n")}`;
-      } else {
-        answer = "No hay citas registradas para hoy.";
-      }
-    } else if (q.includes("informe") || q.includes("resumen")) {
-      const { data } = await supabase
-        .from("informes_diarios")
-        .select("*")
-        .order("fecha", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (data) {
-        answer = `**Informe ${data.fecha}**\n\n${data.resumen_ejecutivo}\n\n**Puntos clave:**\n${(data.puntos_clave || []).map((p: string) => `• ${p}`).join("\n")}`;
-      }
-    }
-
-    // Save assistant message
-    if (sessionId) {
-      await supabase.from("mensajes_chat").insert({
-        sesion_id: sessionId,
-        rol: "assistant",
-        contenido: answer,
-      });
-    }
+    const answer = await callClaude(systemPrompt, question);
 
     return NextResponse.json({
       answer,
-      session_id: sessionId,
       context: {
-        type: context_type || null,
-        id: context_id || null,
+        type: context_type || "report",
+        id: reportDate,
       },
       generated_at: new Date().toISOString(),
     });
