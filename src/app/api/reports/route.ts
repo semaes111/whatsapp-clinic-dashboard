@@ -1,48 +1,34 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { supabase } from "../../../lib/supabase";
 
 export async function GET() {
   try {
-    const reports = [
-      {
-        id: "rpt-001",
-        date: "2026-02-03",
-        title: "Informe diario - 3 Feb 2026",
-        status: "completed",
-        total_conversations: 42,
-        appointments_booked: 8,
-        created_at: "2026-02-03T08:00:00Z",
-      },
-      {
-        id: "rpt-002",
-        date: "2026-02-02",
-        title: "Informe diario - 2 Feb 2026",
-        status: "completed",
-        total_conversations: 38,
-        appointments_booked: 6,
-        created_at: "2026-02-02T08:00:00Z",
-      },
-      {
-        id: "rpt-003",
-        date: "2026-02-01",
-        title: "Informe diario - 1 Feb 2026",
-        status: "completed",
-        total_conversations: 45,
-        appointments_booked: 10,
-        created_at: "2026-02-01T08:00:00Z",
-      },
-      {
-        id: "rpt-004",
-        date: "2026-01-31",
-        title: "Informe diario - 31 Ene 2026",
-        status: "completed",
-        total_conversations: 30,
-        appointments_booked: 5,
-        created_at: "2026-01-31T08:00:00Z",
-      },
-    ];
+    const { data, error } = await supabase
+      .from("informes_diarios")
+      .select("*")
+      .order("fecha", { ascending: false })
+      .limit(30);
+
+    if (error) throw error;
+
+    const reports = (data || []).map((r) => ({
+      id: r.id,
+      date: r.fecha,
+      title: `Informe diario - ${r.fecha}`,
+      status: r.generado_at ? "completed" : "pending",
+      total_conversations: r.total_conversaciones,
+      total_patients: r.total_pacientes,
+      total_confirmed: r.total_confirmados,
+      total_cancelled: r.total_cancelaciones,
+      total_pending: r.total_pendientes,
+      total_urgent: r.total_urgentes,
+      created_at: r.created_at,
+    }));
 
     return NextResponse.json({ reports });
-  } catch {
+  } catch (error) {
+    console.error("Reports API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

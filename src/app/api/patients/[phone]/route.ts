@@ -1,4 +1,6 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "../../../../lib/supabase";
 
 export async function GET(
   _request: NextRequest,
@@ -6,59 +8,89 @@ export async function GET(
 ) {
   try {
     const { phone } = await params;
+    const decodedPhone = decodeURIComponent(phone);
 
-    const patient = {
-      id: "pat-001",
-      name: "Maria Garcia",
-      phone: decodeURIComponent(phone),
-      email: "maria.garcia@email.com",
-      status: "active",
-      registered_at: "2025-06-15T10:00:00Z",
-      last_interaction: "2026-02-03T09:15:00Z",
-      total_conversations: 12,
-      next_appointment: "2026-02-05T10:00:00Z",
-      conversation_history: [
-        {
-          id: "conv-001",
-          date: "2026-02-03T09:15:00Z",
-          summary: "Confirmación de cita para el 5 de febrero",
-          type: "appointment_booking",
-          messages_count: 6,
-        },
-        {
-          id: "conv-002",
-          date: "2026-01-28T14:00:00Z",
-          summary: "Consulta sobre limpieza dental",
-          type: "general_inquiry",
-          messages_count: 4,
-        },
-        {
-          id: "conv-003",
-          date: "2026-01-15T11:30:00Z",
-          summary: "Cambio de cita de enero a febrero",
-          type: "appointment_change",
-          messages_count: 8,
-        },
-      ],
-      appointments: [
-        {
-          id: "apt-010",
-          date: "2026-02-05T10:00:00Z",
-          type: "Revisión general",
-          status: "confirmed",
-        },
-        {
-          id: "apt-008",
-          date: "2026-01-20T09:00:00Z",
-          type: "Limpieza dental",
-          status: "completed",
-        },
-      ],
-      tags: ["regular", "orthodontics"],
-    };
+    // Get patient
+    const { data: patient, error } = await supabase
+      .from("pacientes")
+      .select("*")
+      .eq("telefono", decodedPhone)
+      .single();
 
-    return NextResponse.json(patient);
-  } catch {
+    if (error || !patient) {
+      return NextResponse.json(
+        { error: "Patient not found" },
+        { status: 404 }
+      );
+    }
+
+    // Get appointments
+    const { data: citas } = await supabase
+      .from("citas")
+      .select("*")
+      .eq("paciente_id", patient.id)
+      .order("fecha", { ascending: false })
+      .limit(20);
+
+    // Get interactions
+    const { data: interacciones } = await supabase
+      .from("interacciones")
+      .select("*")
+      .eq("paciente_id", patient.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    // Get notes
+    const { data: notas } = await supabase
+      .from("notas_paciente")
+      .select("*")
+      .eq("paciente_id", patient.id)
+      .order("created_at", { ascending: false });
+
+    // Get pending tasks
+    const { data: tareas } = await supabase
+      .from("tareas_noelia")
+      .select("*")
+      .eq("paciente_id", patient.id)
+      .eq("estado", "pendiente")
+      .order("orden", { ascending: true });
+
+    return NextResponse.json({
+      id: patient.id,
+      name: `${patient.nombre || ""} ${patient.apellidos || ""}`.trim(),
+      phone: patient.telefono,
+      email: patient.email,
+      tipo: patient.tipo,
+      notas_internas: patient.notas_internas,
+      alergias: patient.alergias,
+      tratamientos_activos: patient.tratamientos_activos,
+      cancelaciones: patient.cancelaciones_total,
+      activo: patient.activo,
+      created_at: patient.created_at,
+      updated_at: patient.updated_at,
+      citas: (citas || []).map((c) => ({
+        id: c.id,
+        fecha: c.fecha,
+        hora: c.hora,
+        tipo: c.tipo,
+        estado: c.estado,
+        motivo: c.motivo,
+        notas: c.notas,
+      })),
+      interacciones: (interacciones || []).map((i) => ({
+        id: i.id,
+        origen: i.origen,
+        mensaje: i.mensaje_original,
+        resumen: i.resumen_ia,
+        categoria: i.categoria,
+        accion: i.accion_requerida,
+        fecha: i.created_at,
+      })),
+      notas: notas || [],
+      tareas_pendientes: tareas || [],
+    });
+  } catch (error) {
+    console.error("Patient detail API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
