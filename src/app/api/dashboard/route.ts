@@ -6,17 +6,45 @@ export async function GET() {
   try {
     const today = new Date().toISOString().split("T")[0];
 
-    // Stats from today's report
+    // Stats from latest report (today or most recent)
     const { data: informe } = await supabase
       .from("informes_diarios")
       .select("*")
-      .eq("fecha", today)
+      .lte("fecha", today)
+      .order("fecha", { ascending: false })
+      .limit(1)
       .single();
 
-    // Today's appointments via view
-    const { data: citasHoy } = await supabase
+    // Today's appointments via view, fallback to nearest future date
+    let { data: citasHoy } = await supabase
       .from("v_citas_hoy")
       .select("*");
+
+    // If no appointments today, get nearest upcoming
+    if (!citasHoy || citasHoy.length === 0) {
+      const { data: proximasCitas } = await supabase
+        .from("citas")
+        .select("*, pacientes(nombre, apellidos, telefono)")
+        .gte("fecha", today)
+        .order("fecha", { ascending: true })
+        .order("hora", { ascending: true })
+        .limit(20);
+
+      citasHoy = (proximasCitas || []).map((c: Record<string, unknown>) => {
+        const pac = c.pacientes as Record<string, unknown> | null;
+        return {
+          cita_id: c.id,
+          fecha: c.fecha,
+          hora: c.hora,
+          estado: c.estado,
+          tipo: c.tipo,
+          motivo: c.motivo,
+          nombre: pac?.nombre,
+          apellidos: pac?.apellidos,
+          telefono: pac?.telefono,
+        };
+      });
+    }
 
     // Pending tasks
     const { data: tareas } = await supabase
