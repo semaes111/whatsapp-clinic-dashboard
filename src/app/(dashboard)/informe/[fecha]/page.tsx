@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Download,
   Printer,
+  RefreshCw,
   ExternalLink,
   AlertTriangle,
   Clock,
@@ -26,7 +27,7 @@ import Link from "next/link";
 const urgentes = [
   {
     name: "Elena Aguado",
-    phone: "617 XX XX 01",
+    phone: "+34 617 234 501",
     summary:
       "Paciente con dolor agudo desde el viernes. Solicita cita urgente. No contesta a llamadas de confirmacion. Ha cancelado 3 veces en los ultimos 2 meses.",
     status: "Sin confirmar",
@@ -35,7 +36,7 @@ const urgentes = [
   },
   {
     name: "Rafael Sanchez",
-    phone: "654 XX XX 02",
+    phone: "+34 654 891 202",
     summary:
       "Tratamiento de conducto pendiente desde diciembre. Refiere molestias crecientes y sensibilidad al frio. Pregunta si puede tomar ibuprofeno.",
     status: "Necesita atencion",
@@ -44,7 +45,7 @@ const urgentes = [
   },
   {
     name: "Maria Francisca Perez",
-    phone: "612 XX XX 03",
+    phone: "+34 612 345 003",
     summary:
       "Protesis provisional suelta desde ayer. Tiene dificultad para comer. Pide que la atiendan hoy si es posible.",
     status: "Urgente hoy",
@@ -53,7 +54,7 @@ const urgentes = [
   },
   {
     name: "Francisco Javier Criado",
-    phone: "678 XX XX 04",
+    phone: "+34 678 456 704",
     summary:
       "Dijo 'ya te aviso' hace 2 semanas tras presupuesto de implante. No tiene cita programada. Posible perdida de paciente.",
     status: "Seguimiento",
@@ -65,31 +66,31 @@ const urgentes = [
 const pendientes = [
   {
     name: "Carmen Meca",
-    phone: "622 XX XX 05",
+    phone: "+34 622 567 805",
     summary: "Pendiente de confirmar cita del miercoles 5 feb. No ha respondido al recordatorio automatico.",
     action: "Enviar segundo recordatorio o llamar manana.",
   },
   {
     name: "Mercedes Alcaina",
-    phone: "633 XX XX 06",
+    phone: "+34 633 678 906",
     summary: "Solicita cambio de hora de su revision. Prefiere por la tarde.",
     action: "Ofrecer hueco jueves 6 feb a las 17:00.",
   },
   {
     name: "Irene Pineda",
-    phone: "644 XX XX 07",
+    phone: "+34 644 789 107",
     summary: "Pregunta por precio de blanqueamiento. Se le envio presupuesto, pendiente respuesta.",
     action: "Hacer seguimiento en 48h si no responde.",
   },
   {
     name: "Silvia Valdivia",
-    phone: "655 XX XX 08",
+    phone: "+34 655 890 208",
     summary: "Pide cita para revision anual. Ultima visita hace 14 meses.",
     action: "Agendar revision semana del 10 feb.",
   },
   {
     name: "Eva Maria Madero",
-    phone: "666 XX XX 09",
+    phone: "+34 666 901 309",
     summary: "Dijo 'ya te aviso' tras recibir presupuesto de ortodoncia. Sin cita puesta. Hace 10 dias.",
     action: "Contactar con mensaje de seguimiento.",
   },
@@ -335,6 +336,23 @@ export default function InformeFechaPage() {
   const params = useParams();
   const router = useRouter();
   const fecha = (params?.fecha as string) || "2026-02-03";
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetch("/api/reports/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: fecha }),
+      });
+      router.refresh();
+    } catch (error) {
+      console.error("Error refreshing report:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   return (
     <div style={styles.page}>
@@ -375,6 +393,25 @@ export default function InformeFechaPage() {
         >
           <Printer size={16} />
           Imprimir
+        </button>
+        <button
+          style={{
+            ...styles.iconBtn,
+            opacity: refreshing ? 0.6 : 1,
+            cursor: refreshing ? "wait" : "pointer",
+          }}
+          onMouseEnter={(e) =>
+            !refreshing && (e.currentTarget.style.background = "var(--bg-hover)")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.background = "none")
+          }
+          onClick={handleRefresh}
+          disabled={refreshing}
+          title="Actualizar informe"
+        >
+          <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+          {refreshing ? "Actualizando..." : "Actualizar"}
         </button>
       </div>
       <p style={styles.subline}>
