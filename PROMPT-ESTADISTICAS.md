@@ -1,9 +1,3 @@
-# Prompt para Pencil/Antigravity — Página de Estadísticas
-
-Copia todo el contenido entre las líneas === y pégalo en Pencil con Cmd+K
-
-===
-
 Añade una página de estadísticas al dashboard existente en `/estadisticas`. NO modifiques las páginas existentes (dashboard, informe, chat, pacientes). Solo crea archivos nuevos.
 
 ## TECH STACK (ya existente, no cambiar)
@@ -185,5 +179,3 @@ Ponlo después de "Informes" y antes de "Chat".
 - Manejar datos vacíos con mensaje amigable
 - Las gráficas deben ser responsive
 - Usar el componente `recharts` con ResponsiveContainer
-
-===
