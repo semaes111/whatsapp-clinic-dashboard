@@ -5,6 +5,7 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
+import type { PieLabelRenderProps } from "recharts";
 import { Loader2, TrendingUp, TrendingDown, Users, MessageSquare, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -256,7 +257,7 @@ export default function EstadisticasPage() {
               <div style={styles.chartTitle}>Distribución del período</div>
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={(props: Record<string, unknown>) => `${props.name ?? ""} ${(((props.percent as number) ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
+                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }: PieLabelRenderProps) => `${name ?? ""} ${(((percent as number) ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
                     {pieData.map((_, i) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
