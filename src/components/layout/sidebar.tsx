@@ -9,12 +9,14 @@ import {
   MessageCircle,
   Users,
   CalendarDays,
+  BarChart3,
   LogOut,
 } from "lucide-react";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: FileText, label: "Informe Diario", href: "/informe" },
+  { icon: BarChart3, label: "Estadísticas", href: "/estadisticas" },
   { icon: MessageCircle, label: "Consultar", href: "/chat" },
   { icon: Users, label: "Pacientes", href: "/pacientes" },
   { icon: CalendarDays, label: "Histórico", href: "/historico" },
