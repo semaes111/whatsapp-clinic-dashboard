@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Download,
   RefreshCw,
-  ExternalLink,
   AlertTriangle,
   Clock,
   CheckCircle2,
@@ -16,6 +15,9 @@ import {
   Phone,
   ChevronRight,
   Loader2,
+  Trash2,
+  Check,
+  RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -37,6 +39,12 @@ interface TaskItem {
   id: number;
   titulo: string;
   prioridad: string;
+}
+
+interface TareaEstado {
+  tarea_index: number;
+  completada: boolean;
+  eliminada: boolean;
 }
 
 interface ReportData {
@@ -84,6 +92,9 @@ const styles: Record<string, React.CSSProperties> = {
   bulletItem: { padding: "8px 16px", fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "flex-start", gap: 8 },
   bottomBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 36, marginBottom: 40, padding: "14px 28px", backgroundColor: "var(--accent)", color: "var(--white)", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%", transition: "background 0.15s" },
   loadingBox: { display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", minHeight: 400, gap: 16, color: "var(--text-muted)" },
+  taskRow: { padding: "12px 16px", fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 },
+  taskText: { flex: 1 },
+  taskBtn: { background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 6, display: "flex", alignItems: "center", transition: "background 0.15s" },
 };
 
 /* ------------------------------------------------------------------ */
@@ -113,6 +124,7 @@ export default function InformeFechaPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tareasEstado, setTareasEstado] = useState<Record<number, TareaEstado>>({});
 
   const fetchReport = useCallback(async () => {
     try {
@@ -132,7 +144,21 @@ export default function InformeFechaPage() {
     }
   }, [fecha]);
 
-  useEffect(() => { fetchReport(); }, [fetchReport]);
+  const fetchTareasEstado = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/tareas?fecha=${fecha}`);
+      if (res.ok) {
+        const data = await res.json();
+        const estado: Record<number, TareaEstado> = {};
+        (data.tareas || []).forEach((t: TareaEstado) => {
+          estado[t.tarea_index] = t;
+        });
+        setTareasEstado(estado);
+      }
+    } catch { /* ignore */ }
+  }, [fecha]);
+
+  useEffect(() => { fetchReport(); fetchTareasEstado(); }, [fetchReport, fetchTareasEstado]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -153,6 +179,29 @@ export default function InformeFechaPage() {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleTareaAction = async (index: number, texto: string, accion: "completar" | "eliminar" | "restaurar") => {
+    try {
+      const res = await fetch("/api/tareas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fecha,
+          tarea_index: index,
+          tarea_texto: texto,
+          accion,
+          completada_por: "Noelia",
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTareasEstado(prev => ({
+          ...prev,
+          [index]: data.tarea,
+        }));
+      }
+    } catch { /* ignore */ }
   };
 
   if (loading) {
@@ -307,20 +356,70 @@ export default function InformeFechaPage() {
             </>
           )}
 
-          {/* TAREAS NOELIA */}
+          {/* TAREAS NOELIA - CON BOTONES */}
           {tareas.length > 0 && (
             <>
               <SectionHeader emoji="📋" label="TAREAS PENDIENTES NOELIA" bg="rgba(37, 99, 235, 0.10)" color="var(--accent-light)" />
               <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "0 0 10px 10px", overflow: "hidden" }}>
-                {tareas.map((t, i) => (
-                  <div key={i} style={styles.bulletItem}>
-                    <span style={{ fontWeight: 700, color: "var(--text-muted)", minWidth: 22 }}>{i + 1}.</span>
-                    <span style={{ fontSize: 16, marginRight: 4 }}>
-                      {t.prioridad === "urgente" ? "🔴" : t.prioridad === "alta" ? "🟠" : "🟡"}
-                    </span>
-                    {t.titulo}
-                  </div>
-                ))}
+                {tareas.map((t, i) => {
+                  const estado = tareasEstado[i];
+                  const isCompletada = estado?.completada;
+                  const isEliminada = estado?.eliminada;
+
+                  if (isEliminada) {
+                    return (
+                      <div key={i} style={{ ...styles.taskRow, opacity: 0.4, backgroundColor: "rgba(239, 68, 68, 0.05)" }}>
+                        <span style={{ fontWeight: 700, color: "var(--text-muted)", minWidth: 22 }}>{i + 1}.</span>
+                        <span style={{ ...styles.taskText, textDecoration: "line-through" }}>{t.titulo}</span>
+                        <button
+                          style={{ ...styles.taskBtn, color: "var(--text-muted)" }}
+                          onClick={() => handleTareaAction(i, t.titulo, "restaurar")}
+                          title="Restaurar tarea"
+                        >
+                          <RotateCcw size={16} />
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={i} style={{ ...styles.taskRow, opacity: isCompletada ? 0.5 : 1, backgroundColor: isCompletada ? "rgba(34, 197, 94, 0.05)" : "transparent" }}>
+                      <span style={{ fontWeight: 700, color: "var(--text-muted)", minWidth: 22 }}>{i + 1}.</span>
+                      <span style={{ fontSize: 16, marginRight: 4 }}>
+                        {t.prioridad === "urgente" ? "🔴" : t.prioridad === "alta" ? "🟠" : "🟡"}
+                      </span>
+                      <span style={{ ...styles.taskText, textDecoration: isCompletada ? "line-through" : "none" }}>
+                        {t.titulo}
+                      </span>
+                      {isCompletada ? (
+                        <button
+                          style={{ ...styles.taskBtn, color: "var(--text-muted)" }}
+                          onClick={() => handleTareaAction(i, t.titulo, "restaurar")}
+                          title="Restaurar tarea"
+                        >
+                          <RotateCcw size={16} />
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            style={{ ...styles.taskBtn, color: "var(--success)" }}
+                            onClick={() => handleTareaAction(i, t.titulo, "completar")}
+                            title="Marcar como hecha"
+                          >
+                            <Check size={18} />
+                          </button>
+                          <button
+                            style={{ ...styles.taskBtn, color: "var(--danger)" }}
+                            onClick={() => handleTareaAction(i, t.titulo, "eliminar")}
+                            title="Eliminar tarea"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}
